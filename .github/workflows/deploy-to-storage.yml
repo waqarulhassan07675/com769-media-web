@@ -1,0 +1,39 @@
+name: Deploy React site to Azure Storage Static Website (SAS)
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE: https://func-com769-media-dev.azurewebsites.net/api
+
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Upload dist to $web
+        run: |
+          az storage blob upload-batch \
+            --account-name "${{ secrets.AZURE_STORAGE_ACCOUNT }}" \
+            --sas-token "${{ secrets.AZURE_STORAGE_SAS }}" \
+            --destination '$web' \
+            --source 'dist' \
+            --overwrite
